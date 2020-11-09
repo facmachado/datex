@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 
 #
-#  datex - textual database library
+#  DATEX - Textual database library for Shell Script
 #
 #  Copyright (c) 2020 Flavio Augusto (@facmachado)
 #

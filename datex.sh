@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-#  datex - textual database library
+#  DATEX - Textual database library for Shell Script
 #
 #  Copyright (c) 2020 Flavio Augusto (@facmachado)
 #
@@ -12,7 +12,7 @@
 #
 
 #
-# Arquivo declarado em variável obrigatório
+# Filename declared variable required
 #
 if test -z "$DBFILE"; then
   echo "Declare filename in variable DBFILE" >&2
@@ -24,7 +24,7 @@ if ! test -r "$DBFILE" -a -w "$DBFILE"; then
 fi
 
 #
-# Constantes iniciais
+# Initial constants
 #
 src_dir=$(dirname "${BASH_SOURCE[0]}")
 output_csv="$src_dir/output_csv.awk"
@@ -33,15 +33,15 @@ crud_update="$src_dir/crud_update.awk"
 crud_read="$src_dir/crud_read.awk"
 
 #
-# Aguarda o arquivo ser liberado para escrita
+# Write semaphore (holds operation until previous file write is finished)
 #
 function wait_write() {
   while lsof "$(readlink -f "$DBFILE")" >/dev/null 2>&1; do :; done
 }
 
 #
-# Gera um cabeçalho CSV com os campos informados como parâmetros
-# Ex: create_header nome ender cidade uf cep obs
+# Generates the header with required fields (CSV format)
+# Ex. syntax: create_header nome ender cidade uf cep obs
 # @param {string} field
 # @param {string} field
 # ...
@@ -70,8 +70,8 @@ function create_header() { (
 ) }
 
 #
-# Lista os registros não apagados (no formato chave = valor)
-# Ex: list_records 2 3 (parâmetros opcionais)
+# List (non-"deleted") records, each field per line (params optional)
+# Ex. syntax: list_records 2 3
 # @param {number} lines (0 => all)
 # @param {number} start (1)
 # @returns {string}
@@ -81,15 +81,12 @@ function list_records() {
   ((${1:-0} < 1)) && lines=$(($(wc -l <"$DBFILE") - 1)) || lines=$1
   ((${2:-0} > 0)) && start=$2 || start=1
 
-  awk -f "$crud_read"             \
-    -v start=$((start + 1))       \
-    -v finish=$((start + lines))  \
-    "$DBFILE"
+  awk -f "$crud_read" -v start=$((start + 1)) -v finish=$((start + lines)) "$DBFILE"
 }
 
 #
-# Busca por palavra-chave nos registros
-# Ex: search_records Teste
+# List the records, searching a keyword
+# Ex. syntax: search_records Teste
 # @param {string} query
 # @returns {string}
 #
@@ -98,8 +95,8 @@ function search_records() {
 }
 
 #
-# Mostra o registro requisitado
-# Ex: select_record 3
+# Shows requested record, if not "deleted"
+# Ex. syntax: select_record 3
 # @param {number} line
 # @returns {string}
 #
@@ -108,8 +105,8 @@ function select_record() {
 }
 
 #
-# Cria um novo registro
-# Ex: insert_record nome='Testa de Ferro' obs='Teste de Brasa'
+# Adds a new record
+# Ex. syntax: insert_record nome='Testa de Ferro' obs='Teste de Brasa'
 # @param {string} field=value
 # @param {string} field=value
 # ...
@@ -117,14 +114,14 @@ function select_record() {
 function insert_record() {
   local new output
   output="awk -f $output_csv"
-  new=$(awk -f "$crud_create" "$DBFILE" "$@" | $output)
+  new=$(wait_write && awk -f "$crud_create" "$DBFILE" "$@" | $output)
 
-  test "$*" && wait_write && echo "$new" >>"$DBFILE"
+  test "$*" && echo "$new" >>"$DBFILE"
 }
 
 #
-# Modifica os dados do registro informado
-# Ex: update_record 3 nome='Testa de Ferro' obs='Teste de Brasa'
+# Changes data inside the record
+# Ex. syntax: update_record 3 nome='Testa de Ferro' obs='Teste de Brasa'
 # @param {number} id
 # @param {string} field=value
 # @param {string} field=value
@@ -134,14 +131,14 @@ function update_record() {
   local old new output
   output="awk -f $output_csv"
   old=$(select_record "$1" | $output)
-  new=$(awk -f "$crud_update" "$DBFILE" "$@" 2>/dev/null | $output)
+  new=$(wait_write && awk -f "$crud_update" "$DBFILE" "$@" 2>/dev/null | $output)
 
-  test "$1" && wait_write && sed -i "s/^$old$/$new/" "$DBFILE"
+  test "$1" && sed -i "s/^$old$/$new/" "$DBFILE"
 }
 
 #
-# "Apaga" o registro (marca para possível recuperação)
-# Ex: delete_record 3
+# "Deletes" the record (marks for recovery)
+# Ex. syntax: delete_record 3
 # @param {number} id
 #
 function delete_record() {
