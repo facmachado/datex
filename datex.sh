@@ -3,12 +3,13 @@
 #
 #  DATEX - Textual database library for Shell Script
 #
-#  Copyright (c) 2020 Flavio Augusto (@facmachado)
+#  Copyright (c) 2021 Flavio Augusto (@facmachado)
 #
 #  This software may be modified and distributed under the terms
 #  of the MIT license. See the LICENSE file for details.
 #
-#  Usage: source datex.sh
+#  Usage: DBFILE=database.csv
+#         source datex.sh
 #
 
 #
@@ -52,8 +53,7 @@ function create_header() { (
   sep=,
 
   function show_header() {
-    grep -m1 "^id${sep}.*${sep}ins${sep}upd${sep}del$" "$DBFILE"  \
-      >/dev/null 2>&1
+    grep -m1 "^id${sep}.*${sep}ins${sep}upd${sep}del$" "$DBFILE" >/dev/null 2>&1
   }
 
   if show_header; then

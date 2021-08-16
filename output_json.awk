@@ -3,7 +3,7 @@
 #
 #  DATEX - Textual database library for Shell Script
 #
-#  Copyright (c) 2020 Flavio Augusto (@facmachado)
+#  Copyright (c) 2021 Flavio Augusto (@facmachado)
 #
 #  This software may be modified and distributed under the terms
 #  of the MIT license. See the LICENSE file for details.
@@ -39,10 +39,9 @@ NF == 0 {
     line = line ","
   }
   i = index($0, "=")
+  si = substr($0, i + 2)
   key = "\"" trim(substr($0, 1, i - 1)) "\""
-  value = ((substr($0, i + 2) ~ /^[0-9]+$/) \
-    ? substr($0, i + 2) \
-    : "\"" substr($0, i + 2) "\"")
+  value = ((si ~ /^[0-9]+$/) ? si : "\"" si "\"")
   line = line key ":" value
 }
 
