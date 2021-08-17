@@ -37,8 +37,10 @@ function check() {
 #
 
 function oneTimeSetUp() {
-  readonly src_dir=$(dirname "${BASH_SOURCE[0]}")
+  src_dir=$(dirname "${BASH_SOURCE[0]}")
+  DBFILE="$src_dir/data.csv"
   echo "Test start: $(date)"
+  test -f "$DBFILE" || : >"$DBFILE"
 }
 
 function setUp() {
@@ -50,6 +52,7 @@ function tearDown() {
 }
 
 function oneTimeTearDown() {
+  rm -f "$DBFILE"
   echo -e "\nTest finish: $(date)"
 }
 
@@ -58,46 +61,58 @@ function oneTimeTearDown() {
 #
 
 function testSource() {
-  :
-  # task 'source ascii.sh'
-  # source "$src_dir/ascii.sh"
-  # assertEquals 'source ascii.sh' 0 $? && \
-  # check
-  #
-  # task 'source random.sh'
-  # source "$src_dir/random.sh"
-  # assertEquals 'source random.sh' 0 $? && \
-  # check
-  #
-  # task 'source wol.sh'
-  # source "$src_dir/wol.sh"
-  # assertEquals 'source wol.sh' 0 $? && \
-  # check
+  task 'ls data.csv'
+  ls "$DBFILE" >/dev/null 2>&1
+  assertEquals 'ls data.csv' 0 $? && \
+  check
+
+  task 'source datex.sh'
+  source "$src_dir/datex.sh"
+  assertEquals 'source datex.sh' 0 $? && \
+  check
 }
 
-# function testAscii() {
-#   local result
-#
-#   task 'ascii_bin'
-#   result=$(ascii_bin 123456)
-#   assertEquals 'ascii_bin' 001100010011001000110011001101000011010100110110 "$result" && \
-#   check
-#
-#   task 'ascii_hex'
-#   result=$(ascii_hex 123456)
-#   assertEquals 'ascii_hex' 313233343536 "$result" && \
-#   check
-#
-#   task 'bin_ascii'
-#   result=$(bin_ascii 001100010011001000110011001101000011010100110110)
-#   assertEquals 'bin_ascii' 123456 "$result" && \
-#   check
-#
-#   task 'hex_ascii'
-#   result=$(hex_ascii 313233343536)
-#   assertEquals 'hex_ascii' 123456 "$result" && \
-#   check
-# }
+function testCrudSetup() {
+  local result
+
+  task 'create header'
+  create_header f_var f_type f_value
+  assertEquals 'create header' 0 $? && \
+  check
+
+  task 'check empty table'
+  result=$(list_records | wc -l)
+  assertEquals 'check empty table' 1 "$result" && \
+  check
+}
+
+function testCrudWrite() {
+  local result
+
+  task 'insert_record 1'
+  result=$(insert_record f_var=seq f_type=integer f_value=1)
+  assertContains 'insert_record 1' '"seq","integer",1' "$result" && \
+  check
+
+  task 'insert_record 2'
+  result=$(insert_record f_var=name f_type=string f_value=bob)
+  assertContains 'insert_record 2' '"name","string","bob"' "$result" && \
+  check
+
+  task 'insert_record 3'
+  result=$(insert_record f_var=admin f_type=boolean f_value=false)
+  assertContains 'insert_record 3' '"admin","boolean","false"' "$result" && \
+  check
+
+  task 'update_record 2'
+  result=$(update_record 2 f_var=name f_type=string f_value=robert)
+  assertContains 'update_record 2' '"name","string","robert"' "$result" && \
+  check
+
+  task 'delete_record 3'
+  assertTrue 'delete_record 3' && \
+  check
+}
 
 # function testRandom() {
 #   task 'random_hash with base 2'

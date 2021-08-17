@@ -20,8 +20,8 @@ function parse() {
 }
 
 function trim(x) {
-  sub(/^\"/, "", x)
-  sub(/\"$/, "", x)
+  sub(/^"/, "", x)
+  sub(/"$/, "", x)
   return x
 }
 
