@@ -38,6 +38,8 @@ function check() {
 
 function oneTimeSetUp() {
   src_dir=$(dirname "${BASH_SOURCE[0]}")
+  output_json="$src_dir/output_json.awk"
+  output_csv="$src_dir/output_csv.awk"
   DBFILE="$src_dir/data.csv"
   echo "Test start: $(date)"
   test -f "$DBFILE" || : >"$DBFILE"
@@ -63,12 +65,13 @@ function oneTimeTearDown() {
 function testSource() {
   task 'ls data.csv'
   ls "$DBFILE" >/dev/null 2>&1
-  assertEquals 'ls data.csv' 0 $? && \
+  assertEquals 'ls data.csv' $? 0 && \
   check
 
   task 'source datex.sh'
+  # shellcheck source=/dev/null
   source "$src_dir/datex.sh"
-  assertEquals 'source datex.sh' 0 $? && \
+  assertEquals 'source datex.sh' $? 0 && \
   check
 }
 
@@ -77,12 +80,12 @@ function testCrudSetup() {
 
   task 'create header'
   create_header f_var f_type f_value
-  assertEquals 'create header' 0 $? && \
+  assertEquals 'create header' $? 0 && \
   check
 
   task 'check empty table'
   result=$(list_records | wc -l)
-  assertEquals 'check empty table' 1 "$result" && \
+  assertEquals 'check empty table' "$result" 1 && \
   check
 }
 
@@ -90,98 +93,79 @@ function testCrudWrite() {
   local result
 
   task 'insert_record 1'
-  result=$(insert_record f_var=seq f_type=integer f_value=1)
-  assertContains 'insert_record 1' '"seq","integer",1' "$result" && \
+  insert_record f_var=seq f_type=integer f_value=1
+  result=$(select_record 1 | head -1)
+  assertEquals 'insert_record 1' "$result" 'id = 1' && \
   check
 
   task 'insert_record 2'
-  result=$(insert_record f_var=name f_type=string f_value=bob)
-  assertContains 'insert_record 2' '"name","string","bob"' "$result" && \
+  insert_record f_var=name f_type=string f_value=bob
+  result=$(select_record 2 | head -1)
+  assertEquals 'insert_record 2' "$result" 'id = 2' && \
   check
 
   task 'insert_record 3'
-  result=$(insert_record f_var=admin f_type=boolean f_value=false)
-  assertContains 'insert_record 3' '"admin","boolean","false"' "$result" && \
+  insert_record f_var=admin f_type=boolean f_value=false
+  result=$(select_record 3 | head -1)
+  assertEquals 'insert_record 3' "$result" 'id = 3' && \
+  check
+
+  task 'insert_record 4'
+  insert_record f_var=status f_type=integer f_value=0
+  result=$(select_record 4 | head -1)
+  assertEquals 'insert_record 4' "$result" 'id = 4' && \
   check
 
   task 'update_record 2'
-  result=$(update_record 2 f_var=name f_type=string f_value=robert)
-  assertContains 'update_record 2' '"name","string","robert"' "$result" && \
+  update_record 2 f_value=robert
+  result=$(select_record 2 | grep robert)
+  assertEquals 'update_record 2' "$result" 'f_value = robert' && \
   check
 
-  task 'delete_record 3'
-  assertTrue 'delete_record 3' && \
+  task 'delete_record 4'
+  delete_record 4
+  result=$(grep -E ',1$' "$DBFILE" | grep -cE '^4,')
+  assertEquals 'delete_record 4' "$result" 1 && \
   check
 }
 
-# function testRandom() {
-#   task 'random_hash with base 2'
-#   random_hash 8 2 >/dev/null
-#   assertEquals 'random_hash with base 2' 0 $? && \
-#   check
-#
-#   task 'random_hash with base 8'
-#   random_hash 4 8 >/dev/null
-#   assertEquals 'random_hash with base 8' 0 $? && \
-#   check
-#
-#   task 'random_hash with base 10'
-#   random_hash 5 10 >/dev/null
-#   assertEquals 'random_hash with base 10' 0 $? && \
-#   check
-#
-#   task 'random_hash with base 16'
-#   random_hash 2 16 >/dev/null
-#   assertEquals 'random_hash with base 16' 0 $? && \
-#   check
-#
-#   task 'random_word'
-#   random_word 12 >/dev/null
-#   assertEquals 'random_word' 0 $? && \
-#   check
-#
-#   task 'random_draw'
-#   random_draw 1000 1 >/dev/null
-#   assertEquals 'random_draw' 0 $? && \
-#   check
-#
-#   task 'random_draw with excitement'
-#   random_draw 1000 -1 >/dev/null
-#   assertEquals 'random_draw with excitement' 0 $? && \
-#   check
-#
-#   task 'random_guid'
-#   random_guid >/dev/null
-#   assertEquals 'random_guid' 0 $? && \
-#   check
-#
-#   task 'random_mac'
-#   random_mac >/dev/null
-#   assertEquals 'random_mac' 0 $? && \
-#   check
-# }
+function testCrudRead() {
+  local result
 
-# function testWol() {
-#   local mac result
-#   mac=$(random_mac)
-#
-#   task 'wol_str'
-#   result=$(wol_str "$mac" | wc -c)
-#   assertEquals 'wol_str' 102 "$result" && \
-#   check
-#
-#   task 'wol_send'
-#   wol_send "$mac"
-#   assertEquals 'wol_send' 0 $? && \
-#   check
-# }
+  task 'list_records'
+  result=$(list_records | wc -l)
+  assertEquals 'list_records' "$result" 23 && \
+  check
 
-# function testHexorg() {
-#   task 'hexorg w/o parameters'
-#   bash "$src_dir/hexorg.sh" >/dev/null
-#   assertEquals 'hexorg w/o parameters' 1 $? && \
-#   check
-# }
+  task 'list_records 2 2'
+  result=$(list_records 2 2 | wc -l)
+  assertEquals 'list_records 2 2' "$result" 15 && \
+  check
+
+  task 'search_records robert'
+  result=$(search_records robert)
+  assertContains 'search_records robert' "$result" 'f_value = robert' && \
+  check
+
+  task 'select_record 3'
+  result=$(select_record 3 | head -1)
+  assertEquals 'select_record 3' "$result" 'id = 3' && \
+  check
+}
+
+function testOutput() {
+  local result
+
+  task 'output_csv'
+  result=$(select_record 1 | awk -f "$output_csv")
+  assertContains 'output_csv' "$result" '"seq","integer",1' && \
+  check
+
+  task 'output_json'
+  result=$(select_record 1 | awk -f "$output_json")
+  assertContains 'output_json' "$result" '"f_var":"seq","f_type":"integer","f_value":1' && \
+  check
+}
 
 #
 # Calls shunit2
