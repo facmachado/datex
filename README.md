@@ -52,7 +52,7 @@ This is intended for simple CSV file handlings. It can be used as a backend for 
  - Functions for authentication, logging and config files
  - HTML and XML outputs in mind
  - CSV and JSON outputs ready
- - *NEW*: Testing environment (in development)
+ - Testing environment ready
 
 **About**
 
