@@ -65,13 +65,13 @@ function oneTimeTearDown() {
 function testSource() {
   task 'ls data.csv'
   ls "$DBFILE" >/dev/null 2>&1
-  assertEquals 'ls data.csv' $? 0 && \
+  assertEquals 'ls data.csv' 0 $? && \
   check
 
   task 'source datex.sh'
   # shellcheck source=/dev/null
   source "$src_dir/datex.sh"
-  assertEquals 'source datex.sh' $? 0 && \
+  assertEquals 'source datex.sh' 0 $? && \
   check
 }
 
@@ -80,12 +80,12 @@ function testCrudSetup() {
 
   task 'create header'
   create_header f_var f_type f_value
-  assertEquals 'create header' $? 0 && \
+  assertEquals 'create header' 0 $? && \
   check
 
   task 'check empty table'
   result=$(list_records | wc -l)
-  assertEquals 'check empty table' "$result" 1 && \
+  assertEquals 'check empty table' 1 "$result" && \
   check
 }
 
@@ -95,37 +95,37 @@ function testCrudWrite() {
   task 'insert_record 1'
   insert_record f_var=seq f_type=integer f_value=1
   result=$(select_record 1 | head -1)
-  assertEquals 'insert_record 1' "$result" 'id = 1' && \
+  assertEquals 'insert_record 1' 'id = 1' "$result" && \
   check
 
   task 'insert_record 2'
   insert_record f_var=name f_type=string f_value=bob
   result=$(select_record 2 | head -1)
-  assertEquals 'insert_record 2' "$result" 'id = 2' && \
+  assertEquals 'insert_record 2' 'id = 2' "$result" && \
   check
 
   task 'insert_record 3'
   insert_record f_var=admin f_type=boolean f_value=false
   result=$(select_record 3 | head -1)
-  assertEquals 'insert_record 3' "$result" 'id = 3' && \
+  assertEquals 'insert_record 3' 'id = 3' "$result" && \
   check
 
   task 'insert_record 4'
   insert_record f_var=status f_type=integer f_value=0
   result=$(select_record 4 | head -1)
-  assertEquals 'insert_record 4' "$result" 'id = 4' && \
+  assertEquals 'insert_record 4' 'id = 4' "$result" && \
   check
 
   task 'update_record 2'
-  update_record 2 f_value=robert
+  update_record 2 f_var=user f_value=robert
   result=$(select_record 2 | grep robert)
-  assertEquals 'update_record 2' "$result" 'f_value = robert' && \
+  assertEquals 'update_record 2' 'f_value = robert' "$result" && \
   check
 
   task 'delete_record 4'
   delete_record 4
   result=$(grep -E ',1$' "$DBFILE" | grep -cE '^4,')
-  assertEquals 'delete_record 4' "$result" 1 && \
+  assertEquals 'delete_record 4' 1 "$result" && \
   check
 }
 
@@ -134,22 +134,22 @@ function testCrudRead() {
 
   task 'list_records'
   result=$(list_records | wc -l)
-  assertEquals 'list_records' "$result" 23 && \
+  assertEquals 'list_records' 23 "$result" && \
   check
 
   task 'list_records 2 2'
   result=$(list_records 2 2 | wc -l)
-  assertEquals 'list_records 2 2' "$result" 15 && \
+  assertEquals 'list_records 2 2' 15 "$result" && \
   check
 
   task 'search_records robert'
   result=$(search_records robert)
-  assertContains 'search_records robert' "$result" 'f_value = robert' && \
+  assertContains 'search_records robert' 'f_value = robert' "$result" && \
   check
 
   task 'select_record 3'
   result=$(select_record 3 | head -1)
-  assertEquals 'select_record 3' "$result" 'id = 3' && \
+  assertEquals 'select_record 3' 'id = 3' "$result" && \
   check
 }
 

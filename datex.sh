@@ -66,6 +66,7 @@ function create_header() { (
   fi
 
   read -r -a fields <<<"id $* ins upd del"
+  # shellcheck disable=SC2001
   wait_write && sed "s/ /$sep/g" <<<"${fields[@]}" >"$DBFILE"
 ) }
 
@@ -112,11 +113,19 @@ function select_record() {
 # ...
 #
 function insert_record() {
-  local new output
-  output="awk -f $output_csv"
-  new=$(wait_write && awk -f "$crud_create" "$DBFILE" "$@" | $output)
+  local arg new
 
-  test "$*" && echo "$new" >>"$DBFILE"
+  if test "${*:1}"; then
+    for arg in "${@:1}"; do
+      if (($(grep -cm1 = <<<"$arg") < 1)); then
+        echo 'Strings must be quoted' >&2
+        return 1
+      fi
+    done
+    new=$(wait_write && awk -f "$crud_create" "$DBFILE" "$@" | awk -f "$output_csv")
+
+    echo "$new" >>"$DBFILE"
+  fi
 }
 
 #
@@ -128,12 +137,21 @@ function insert_record() {
 # ...
 #
 function update_record() {
-  local old new output
-  output="awk -f $output_csv"
-  old=$(select_record "$1" | $output)
-  new=$(wait_write && awk -f "$crud_update" "$DBFILE" "$@" 2>/dev/null | $output)
+  local arg old new output
 
-  test "$1" && sed -i "s/^$old$/$new/" "$DBFILE"
+  if test "${*:1}"; then
+    for arg in "${@:2}"; do
+      if (($(grep -cm1 = <<<"$arg") < 1)); then
+        echo 'Strings must be quoted' >&2
+        return 1
+      fi
+    done
+    output="awk -f $output_csv"
+    old=$(select_record "$1" | $output)
+    new=$(wait_write && awk -f "$crud_update" "$DBFILE" "$@" 2>/dev/null | $output)
+
+    sed -i "s/^$old$/$new/" "$DBFILE"
+  fi
 }
 
 #
