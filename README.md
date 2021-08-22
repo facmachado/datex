@@ -47,6 +47,8 @@ Changes data inside the record
 
 This is intended for simple CSV file handlings. It can be used as a backend for tiny systems, catalogues etc., but DO NOT expect security or database rules here, although in a well-configured CGI the access to the CSV files should be protected anyway.
 
+For now, only two variable types are being used in the CSV file: *integer* and *string*.
+
 **TODOs**
 
  - Functions for authentication, logging and config files
