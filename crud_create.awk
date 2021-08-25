@@ -9,16 +9,16 @@
 #  of the MIT license. See the LICENSE file for details.
 #
 
-BEGIN {
-  FS = ","
-  now = systime()
-}
-
 BEGINFILE {
   total = 0
   while (getline <FILENAME) {
     total++
   }
+}
+
+BEGIN {
+  FS = ","
+  now = systime()
 }
 
 NR == 1 {
